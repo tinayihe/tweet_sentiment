@@ -1,0 +1,49 @@
+# Algo Sequential minimal optimization for solving the quadratic programming (QP) problem that arises during the training of support vector machines.
+# pour résoudre Lagragian
+def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
+    dataMatrix = mat(dataMatIn);
+    labelMat = mat(classLabels).transpose()
+    b = 0
+    m, n = shape(dataMatrix)
+    # Initialize matrix of alphas, filled with zeros.
+    alphas = mat(zeros((m, 1)))
+    iter = 0
+    while (iter < maxIter):
+        alphaPairsChanged = 0
+        for i in range(m):
+            fXi = float(multiply(alphas, labelMat).T * (dataMatrix * dataMatrix[i, :].T)) + b
+            # Vérifier KKT condition
+            Ei = fXi - float(labelMat[i])
+            if ((labelMat[i] * Ei < -toler) and (alphas[i] < C)) or ((labelMat[i] * Ei > toler) and (alphas[i] > 0)):
+                # select alpha j aléatoirement
+                j = selectJrand(i, m)
+                fXj = float(multiply(alphas, labelMat).T * (dataMatrix * dataMatrix[j, :].T)) + b
+                Ej = fXj - float(labelMat(j))
+                alphaIold = alphas[i].copy();
+                alphaJold = alphas[j].copy();
+                if (labelMat[i] != labelMat[j]):
+                    # Pas même coté de hyper plane
+                    L = max(0, alphas[j] - alphas[i])
+                    H = min(C, C + alphas[j] - alphas[i])
+                else:
+                    # Même coté de hyper plane
+                    L = max(0, alphas[j] + alphas[i] - C)
+                    H = min(C, alphas[j] + alphas[i])
+                if L == H: continue
+                eta = 2.0 * dataMatrix[i, :] * dataMatrix[j, :].T - dataMatrix[i, :] * dataMatrix[i, :].T - dataMatrix[j, :] * dataMatrix[j, :].T
+                if eta >= 0: continue
+                alphas[j] -= labelMat[j] * (Ei - Ej) / eta
+                alphas[j] = clipAlpha(alphas[j], H, L)
+                # mouvement de j n'est pas suffissant
+                if (abs(alphas[j] - alphaJold) < 0.00001): continue
+                # Mettre à jour i avec le même montant de J
+                alphas[i] += labelMat[j] * labelMat[i] * (alphaJold - alphas[j])
+                b1 = b - Ei - labelMat[i] * (alphas[i] - alphaIold) * dataMatrix[i, :] * dataMatrix[i, :].T - labelMat[j] * (alphas[j] - alphaJold) * dataMatrix[i,:] * dataMatrix[j, :].T
+                b2 = b - Ei - labelMat[i] * (alphas[i] - alphaIold) * dataMatrix[i, :] * dataMatrix[j, :].T - labelMat[j] * (alphas[j] - alphaJold) * dataMatrix[j,:] * dataMatrix[j, :].T
+                if (0 < alphas[i]) and (C > alphas[i]): b = b1
+                elif (0 < alphas[j]) and (C > alphas[j]): b = b2
+                else: b = (b1 + b2) / 2.0
+                alphaPairsChanged += 1
+        if (alphaPairsChanged == 0): iter += 1
+        else: iter = 0
+    return b, alphas

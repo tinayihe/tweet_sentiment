@@ -1,0 +1,39 @@
+
+classifier = nltk.NaiveBayesClassifier.train(training_set)
+
+test_pos = test[ test['sentiment'] == 'Positive']
+test_pos = test_pos['text']
+test_neg = test[ test['sentiment'] == 'Negative']
+test_neg = test_neg['text']
+test_neu = test[ test['sentiment'] == 'Neutral']
+test_neu = test_neu['text']
+
+
+neg_cnt = 0
+pos_cnt = 0
+neu_cnt = 0
+for obj in test_neg:
+    res = classifier.classify(extract_features(obj.split()))
+    if (res == 'Negative'):
+        neg_cnt = neg_cnt + 1
+for obj in test_pos:
+    res = classifier.classify(extract_features(obj.split()))
+    if (res == 'Positive'):
+        pos_cnt = pos_cnt + 1
+for obj in test_pos:
+    res = classifier.classify(extract_features(obj.split()))
+    if (res == 'Neutral'):
+        neu_cnt = neu_cnt + 1
+
+print('[Negative]: %s/%s ' % (len(test_neg), neg_cnt))
+print('[Positive]: %s/%s ' % (len(test_pos), pos_cnt))
+print('[Neutral]: %s/%s ' % (len(test_pos), neu_cnt))
+
+# Nettroyer url, mention, hashtag
+# def nettroyer(text):
+#    text = re.sub(r"http\S+", '', text)
+#    text = re.sub(r"(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", '', text)
+#    text = re.sub(r"(#[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", '', text)
+#    return text
+
+# train['text'] = [nettroyer(text) for text in train['text']]

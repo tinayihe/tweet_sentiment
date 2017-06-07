@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import re
 from sklearn.model_selection import train_test_split
+import csv
 
 import nltk
 from nltk.corpus import stopwords
@@ -14,8 +15,10 @@ import matplotlib.pyplot as plt
 # %matplotlib inline
 
 from subprocess import check_output
+import nltk.classify
+from sklearn.svm import LinearSVC
 
-data = pd.read_csv('/Users/yihe/PycharmProjects/tweet_sentiment/dataset/Sentiment.csv')
+data = pd.read_csv('/Users/yihe/PycharmProjects/tweet_sentiment/dataset/mini.csv')
 data = data[['text','sentiment']]
 train, test = train_test_split(data,test_size = 0.1)
 
@@ -55,7 +58,7 @@ def groupe_negation(list_words):
     start_index = -1
     end_index = -1
     for idx, val in enumerate(list_words):
-        if val.startwith("n'") or val == 'ne':
+        if val.startswith("n'") or val == 'ne':
             start_index = idx
         if val in negative_ends:
             end_index = idx
@@ -126,6 +129,40 @@ def extract_features(document):
         features['containts(%s)' % word] = (word in document_words)
     return features
 
-# training_set = nltk.classify.apply_features(extract_features,tweets)
-# print(training_set)
+training_set = nltk.classify.apply_features(extract_features,tweets)
+
+with open('/Users/yihe/PycharmProjects/tweet_sentiment/dataset/training_feuture.csv', 'w') as myfile:
+    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+    wr.writerow(training_set)
+
+classifier = nltk.classify.SklearnClassifier(LinearSVC())
+classifier.train(training_set)
+
+test_pos = test[ test['sentiment'] == 'Positive']
+test_pos = test_pos['text']
+test_neg = test[ test['sentiment'] == 'Negative']
+test_neg = test_neg['text']
+test_neu = test[ test['sentiment'] == 'Neutral']
+test_neu = test_neu['text']
+
+
+neg_cnt = 0
+pos_cnt = 0
+neu_cnt = 0
+for obj in test_neg:
+    res = classifier.classify(extract_features(obj.split()))
+    if (res == 'Negative'):
+        neg_cnt = neg_cnt + 1
+for obj in test_pos:
+    res = classifier.classify(extract_features(obj.split()))
+    if (res == 'Positive'):
+        pos_cnt = pos_cnt + 1
+for obj in test_pos:
+    res = classifier.classify(extract_features(obj.split()))
+    if (res == 'Neutral'):
+        neu_cnt = neu_cnt + 1
+
+print('[Negative]: %s/%s ' % (len(test_neg), neg_cnt))
+print('[Positive]: %s/%s ' % (len(test_pos), pos_cnt))
+print('[Neutral]: %s/%s ' % (len(test_pos), neu_cnt))
 
